@@ -2,11 +2,16 @@ from flask import Flask, render_template, request, redirect
 import os
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 app = Flask(__name__)
 
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
-TO_EMAIL = 'akinrogundej@gmail.com'  
+TO_EMAIL = 'akinrogundej@gmail.com'  # Your receiving email
+FROM_EMAIL = 'akinrogundep0@gmail.com'  # Must be a verified sender in SendGrid
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -26,7 +31,7 @@ def index():
         """
 
         message = Mail(
-            from_email=email,
+            from_email=FROM_EMAIL,  # Must be verified in SendGrid
             to_emails=TO_EMAIL,
             subject=subject,
             plain_text_content=content
@@ -44,7 +49,8 @@ def index():
 
 @app.route('/success')
 def success():
-    return "✅ Data submitted and emailed successfully!"
+    return render_template('success.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
