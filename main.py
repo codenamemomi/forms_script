@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect
 import os
+import traceback
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from dotenv import load_dotenv
@@ -22,16 +23,16 @@ def index():
         tech_stack = request.form.getlist('tech_stack')
         tech_stack_str = ', '.join(tech_stack)
 
-        # Compose email
+        # Compose email content
         subject = "New Tech Profile Submission"
-        content = f"""
-        Email: {email}
-        Name: {first_name} {last_name}
-        Tech Stack: {tech_stack_str}
-        """
+        content = (
+            f"Email: {email}\n"
+            f"Name: {first_name} {last_name}\n"
+            f"Tech Stack: {tech_stack_str}"
+        )
 
         message = Mail(
-            from_email=FROM_EMAIL,  # Must be verified in SendGrid
+            from_email=FROM_EMAIL,
             to_emails=TO_EMAIL,
             subject=subject,
             plain_text_content=content
@@ -41,7 +42,8 @@ def index():
             sg = SendGridAPIClient(SENDGRID_API_KEY)
             sg.send(message)
         except Exception as e:
-            return f"❌ Failed to send email: {e}"
+            error_details = traceback.format_exc()
+            return f"❌ Failed to send email:\n<pre>{error_details}</pre>"
 
         return redirect('/success')
 
@@ -50,7 +52,6 @@ def index():
 @app.route('/success')
 def success():
     return render_template('success.html')
-
 
 if __name__ == '__main__':
     app.run(debug=True)
