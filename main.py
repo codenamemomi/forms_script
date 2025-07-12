@@ -1,16 +1,12 @@
 from flask import Flask, render_template, request, redirect
-import pandas as pd
 import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 app = Flask(__name__)
 
-# Excel file path
-EXCEL_FILE = 'user_tech_profiles.xlsx'
-
-# Ensure the Excel file exists
-if not os.path.exists(EXCEL_FILE):
-    df = pd.DataFrame(columns=['Email', 'Full Name', 'Tech Stack'])
-    df.to_excel(EXCEL_FILE, index=False)
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+TO_EMAIL = 'akinrogundej@gmail.com'  
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -18,17 +14,29 @@ def index():
         email = request.form['email']
         first_name = request.form['first_name']
         last_name = request.form['last_name']
-        tech_stack = request.form.getlist('tech_stack')  # Get multiple selections
-        tech_stack_str = ', '.join(tech_stack)  # Convert list to string
+        tech_stack = request.form.getlist('tech_stack')
+        tech_stack_str = ', '.join(tech_stack)
 
-        # Append to Excel
-        df = pd.read_excel(EXCEL_FILE)
-        df = pd.concat([df, pd.DataFrame([{
-            'Email': email,
-            'Full Name': f"{first_name} {last_name}",
-            'Tech Stack': tech_stack_str
-        }])], ignore_index=True)
-        df.to_excel(EXCEL_FILE, index=False)
+        # Compose email
+        subject = "New Tech Profile Submission"
+        content = f"""
+        Email: {email}
+        Name: {first_name} {last_name}
+        Tech Stack: {tech_stack_str}
+        """
+
+        message = Mail(
+            from_email=email,
+            to_emails=TO_EMAIL,
+            subject=subject,
+            plain_text_content=content
+        )
+
+        try:
+            sg = SendGridAPIClient(SENDGRID_API_KEY)
+            sg.send(message)
+        except Exception as e:
+            return f"❌ Failed to send email: {e}"
 
         return redirect('/success')
 
@@ -36,7 +44,7 @@ def index():
 
 @app.route('/success')
 def success():
-    return "✅ Data submitted successfully!"
+    return "✅ Data submitted and emailed successfully!"
 
 if __name__ == '__main__':
     app.run(debug=True)
